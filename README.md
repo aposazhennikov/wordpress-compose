@@ -1,0 +1,1 @@
+Simple docker-compose project, which will help you to build wordpress via using nginx as proxy, php-fpm as a main Process Manager, mysql as a database for wordpress and certbot for making and renew ssl certificates.
