@@ -1,0 +1,67 @@
+version: '3'
+
+services:
+  php:
+    build: .
+    networks:
+      - wp_network
+    depends_on:
+      - mysql
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - WORDPRESS_DB_HOST=mysql:3306
+      - WORDPRESS_DB_USER=$MYSQL_USER
+      - WORDPRESS_DB_PASSWORD=$MYSQL_PASSWORD
+      - WORDPRESS_DB_NAME=$MYSQL_DATABASE
+    volumes:
+      - ./wordpress:/var/www/html
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - wp_network
+    restart: unless-stopped
+    volumes:
+      - ./nginx-conf.d:/etc/nginx/conf.d
+      - ./wordpress:/var/www/html
+      - /etc/letsencrypt:/etc/letsencrypt
+    depends_on:
+      - php
+
+
+  mysql:
+    image: mysql:latest
+    restart: unless-stopped
+    command: '--default-authentication-plugin=mysql_native_password'
+    volumes:
+      - dbfile:/var/lib/mysql
+    networks:
+      - wp_network
+  certbot:
+    container_name: certbot
+    image: certbot/certbot:latest
+    depends_on:
+      - nginx
+    env_file: .env
+    command: >-
+             certonly --reinstall --webroot --webroot-path=/var/www/html
+             --email ${EMAIL} --agree-tos --no-eff-email
+             -d ${DOMAIN}
+    volumes:
+      - etc-letsencrypt:/etc/letsencrypt
+      - ./wordpress:/var/www/html
+    networks:
+      - wp_network
+volumes:
+    etc-letsencrypt:
+    dbfile:
+
+networks:
+  wp_network:
+    driver: bridge
+
+
+
